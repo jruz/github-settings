@@ -32,3 +32,28 @@ release +ARGS:
 
 schema-build:
     sandbox cargo run -- schema > github-settings.schema.json
+
+logs-show:
+    #!/usr/bin/env nu
+    let state = (
+        $env.XDG_STATE_HOME?
+        | default --empty ($env.HOME | path join .local state)
+    )
+    open --raw ($state | path join github-settings errors.jsonl)
+        | from json --objects
+        | each {|entry|
+            {
+                timestamp: $entry.timestamp
+                process: $entry.span?.process?
+                target: $entry.target
+            } | merge $entry.fields
+        }
+        | to yaml
+
+logs-clean:
+    #!/usr/bin/env nu
+    let state = (
+        $env.XDG_STATE_HOME?
+        | default --empty ($env.HOME | path join .local state)
+    )
+    rm --force ($state | path join github-settings errors.jsonl)

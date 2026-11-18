@@ -30,6 +30,13 @@
 - Use `_` in keys, never `-`.
 - Keep values in GitHub's format, including `-` in topics, labels and branch names.
 
+## Errors
+
+- Show users a short message in declaration terms with a `help` hint.
+- Record request and failure details with `tracing::error!` at the point of failure.
+- Failures are appended as JSON lines to `$XDG_STATE_HOME/github-settings/errors.jsonl`, or `~/.local/state/github-settings/errors.jsonl` when `XDG_STATE_HOME` is unset.
+- Run `just logs-show` to read the log and `just logs-clean` to delete it.
+
 ## Layers
 
 - `main.rs` calls `commands` and `utils`.

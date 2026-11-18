@@ -51,6 +51,12 @@ mod tests {
             .collect()
     }
 
+    fn cause(error: &live::Error) -> (String, Option<String>) {
+        let source = miette::Diagnostic::diagnostic_source(error).expect("rejected request");
+        let help = source.help().map(|help| help.to_string());
+        (source.to_string(), help)
+    }
+
     fn applied(change: &plan::Change) -> Step {
         Step {
             body: "{}".to_owned(),
@@ -252,7 +258,14 @@ mod tests {
             .expect_err("forbidden");
         assert_eq!(
             error.to_string(),
-            "GitHub rejected GET repos/jruz/agent-config: Must have admin rights to Repository. (403)"
+            "could not read settings for jruz/agent-config"
+        );
+        assert_eq!(
+            cause(&error),
+            (
+                "Must have admin rights to Repository.".to_owned(),
+                Some("GITHUB_TOKEN needs admin access to this repository".to_owned())
+            )
         );
         server
             .await
@@ -354,7 +367,9 @@ mod tests {
             Some("\u{2717} settings.private")
         );
         let report = events.last().expect("push report");
-        assert!(report.contains("- settings.private: GitHub did not report"));
+        assert!(report.contains(
+            "- settings.private: GitHub still reports the previous value after 2 checks\n  help: wait a minute and run push again"
+        ));
         let skipped = changes.len() - 1;
         assert!(report.ends_with(&format!("0 applied, 1 failed, {skipped} skipped")));
         server
@@ -380,8 +395,11 @@ mod tests {
             let desired = fixture();
             let result = live::read(&client, &desired.repository, None).await;
             let error = result.expect_err("forbidden");
-            assert!(error.to_string().contains("403"));
-            assert!(error.to_string().contains(message));
+            assert_eq!(
+                error.to_string(),
+                "could not read branch_protection for jruz/agent-config"
+            );
+            assert_eq!(cause(&error).0, message);
             server
                 .await
                 .expect("server task")
@@ -426,7 +444,7 @@ mod tests {
             .map(|change| format!("○ {}", change.name))
             .collect::<Vec<_>>();
         let summary = format!(
-            "\nerrors:\n- actions: Resource not accessible by token (403)\n\n1 applied, 1 failed, {} skipped",
+            "\nerrors:\n- actions: Resource not accessible by token\n  help: GITHUB_TOKEN needs admin access to this repository\n\n1 applied, 1 failed, {} skipped",
             skipped.len()
         );
         let expected = ["\u{2713} topics".to_owned(), "\u{2717} actions".to_owned()]

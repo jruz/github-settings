@@ -20,14 +20,16 @@ pub enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Output(#[from] output::Error),
-    #[error("push stopped at {name}")]
-    Stopped { name: String },
-    #[error("GitHub did not report {expected} for {path} after {attempts} checks")]
-    Unsettled {
-        attempts: usize,
-        expected: serde_json::Value,
-        path: String,
-    },
+    #[error("push stopped at {0}")]
+    Stopped(
+        String,
+        #[source]
+        #[diagnostic_source]
+        Box<dyn miette::Diagnostic + Send + Sync>,
+    ),
+    #[error("GitHub still reports the previous value after {attempts} checks")]
+    #[diagnostic(help("wait a minute and run push again"))]
+    Unsettled { attempts: usize },
 }
 
 pub struct Polling {
@@ -44,8 +46,10 @@ pub async fn apply(
 ) -> Result<(), Error> {
     for (applied, change) in changes.iter().enumerate() {
         if let Err(error) = apply_change(client, change, polling).await {
+            let hint = miette::Diagnostic::help(&error);
             let failure = output::Failure {
-                message: describe(&error),
+                help: hint.map(|hint| hint.to_string()),
+                message: error.to_string(),
                 name: change.name.clone(),
             };
             let skipped = changes
@@ -54,7 +58,9 @@ pub async fn apply(
                 .map(|skipped| skipped.name.as_str())
                 .collect::<Vec<_>>();
             report_failure(sender, applied, &failure, &skipped)?;
-            return Err(Error::Stopped { name: failure.name });
+            let source = Box::new(error);
+            let stopped = Error::Stopped(failure.name, source);
+            return Err(stopped);
         }
         let event = output::Event::Applied(&change.name);
         output::emit(sender, event)?;
@@ -107,13 +113,6 @@ fn report_failure(
     Ok(())
 }
 
-fn describe(error: &Error) -> String {
-    let Error::Api(error) = error else {
-        return error.to_string();
-    };
-    api::describe(error)
-}
-
 #[tracing::instrument(skip(client, polling))]
 async fn settle(
     client: &api::Client,
@@ -125,11 +124,8 @@ async fn settle(
     let mut current = read(client, path).await?;
     while !contains(&current, expected) {
         if attempts == polling.attempts {
-            return Err(Error::Unsettled {
-                attempts,
-                expected: expected.clone(),
-                path: path.to_owned(),
-            });
+            tracing::error!(attempts, %expected, %current, path, "GitHub did not settle");
+            return Err(Error::Unsettled { attempts });
         }
         tokio::time::sleep(polling.interval).await;
         current = read(client, path).await?;

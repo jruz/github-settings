@@ -44,6 +44,7 @@ pub enum Event<'event> {
 }
 
 pub struct Failure {
+    pub help: Option<String>,
     pub message: String,
     pub name: String,
 }
@@ -110,11 +111,19 @@ fn render(event: Event<'_>) -> Result<String, Error> {
     Ok(message)
 }
 
+fn render_failure(failure: &Failure) -> String {
+    let line = format!("- {}: {}", failure.name, failure.message);
+    match &failure.help {
+        Some(help) => format!("{line}\n  help: {help}"),
+        None => line,
+    }
+}
+
 fn render_push(summary: Summary<'_>, palette: Palette) -> String {
     let errors = summary
         .failures
         .iter()
-        .map(|failure| format!("- {}: {}", failure.name, failure.message))
+        .map(render_failure)
         .collect::<Vec<_>>();
     let errors = if errors.is_empty() {
         String::new()
