@@ -190,6 +190,22 @@ mod tests {
         ]
     }
 
+    fn declared_steps(declaration: &types::Declaration) -> Vec<Step> {
+        let settings = serde_json::to_string(&declaration.settings).expect("settings");
+        let topics = serde_json::to_string(&declaration.topics).expect("topics");
+        let labels = serde_json::to_string(&declaration.labels).expect("labels");
+        let mut steps = read_steps(&labels);
+        for step in &mut steps {
+            if step.path == "repos/jruz/agent-config" {
+                step.body.clone_from(&settings);
+            }
+            if step.path.ends_with("/topics") {
+                step.body.clone_from(&topics);
+            }
+        }
+        steps
+    }
+
     #[tokio::test]
     async fn pull_and_plan_round_trip_without_any_writes() {
         let desired = fixture();
@@ -321,10 +337,12 @@ mod tests {
             get("repos/jruz/agent-config", 200, r#"{"private":false}"#),
         ];
         push_steps.splice(1..1, polls);
+        let verification = declared_steps(&desired);
+        push_steps.extend(verification);
         let (push_base, push_server) = mock(push_steps).await;
         let push_client = api::client("mock-token", &push_base).expect("client");
         let (sender, mut receiver) = mpsc::unbounded_channel();
-        let outcome = push::apply(&push_client, &changes, &FAST, &sender)
+        let outcome = push::apply(&push_client, &desired, &changes, &FAST, &sender)
             .await
             .expect("push");
         assert_eq!(outcome, push::Outcome::Applied);
@@ -358,7 +376,7 @@ mod tests {
         let (base, server) = mock(steps).await;
         let client = api::client("mock-token", &base).expect("client");
         let (sender, mut receiver) = mpsc::unbounded_channel();
-        let outcome = push::apply(&client, &changes, &FAST, &sender)
+        let outcome = push::apply(&client, &desired, &changes, &FAST, &sender)
             .await
             .expect("push report");
         assert_eq!(outcome, push::Outcome::Failed);
@@ -435,7 +453,7 @@ mod tests {
         let (base, server) = mock(steps).await;
         let client = api::client("mock-token", &base).expect("client");
         let (sender, mut receiver) = mpsc::unbounded_channel();
-        let outcome = push::apply(&client, &changes, &FAST, &sender)
+        let outcome = push::apply(&client, &desired, &changes, &FAST, &sender)
             .await
             .expect("push report");
         assert_eq!(outcome, push::Outcome::Failed);
@@ -472,6 +490,7 @@ mod tests {
         current.security.automated_security_fixes = true;
         current.labels.clear();
         let changes = plan::changes(&desired, &current).expect("plan");
+        let verification = declared_steps(&desired);
         let steps = changes
             .iter()
             .map(|change| Step {
@@ -481,11 +500,12 @@ mod tests {
                 payload: change.payload.clone(),
                 status: 204,
             })
+            .chain(verification)
             .collect();
         let (base, server) = mock(steps).await;
         let client = api::client("mock-token", &base).expect("client");
         let (sender, mut receiver) = mpsc::unbounded_channel();
-        let outcome = push::apply(&client, &changes, &FAST, &sender)
+        let outcome = push::apply(&client, &desired, &changes, &FAST, &sender)
             .await
             .expect("push succeeded");
         assert_eq!(outcome, push::Outcome::Applied);
@@ -495,6 +515,34 @@ mod tests {
             .chain([format!("\n{} applied", changes.len())])
             .collect::<Vec<_>>();
         assert_eq!(events(&mut receiver), expected);
+        server
+            .await
+            .expect("server task")
+            .expect("requests matched");
+    }
+
+    #[tokio::test]
+    async fn ignored_fields_fail_the_push() {
+        let desired = fixture();
+        let mut current = fixture();
+        current.settings.allow_auto_merge = false;
+        let changes = plan::changes(&desired, &current).expect("plan");
+        let verification = declared_steps(&current);
+        let steps = changes.iter().map(applied).chain(verification).collect();
+        let (base, server) = mock(steps).await;
+        let client = api::client("mock-token", &base).expect("client");
+        let (sender, mut receiver) = mpsc::unbounded_channel();
+        let outcome = push::apply(&client, &desired, &changes, &FAST, &sender)
+            .await
+            .expect("push report");
+        assert_eq!(outcome, push::Outcome::Failed);
+        assert_eq!(
+            events(&mut receiver),
+            [
+                "\u{2713} settings",
+                "\nerrors:\n- settings.allow_auto_merge: GitHub accepted the change but kept the previous value\n  help: GitHub may ignore this key for this repository; run plan to compare\n\n1 applied, 1 failed"
+            ]
+        );
         server
             .await
             .expect("server task")

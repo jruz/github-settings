@@ -1,9 +1,12 @@
 use std::path;
 
 use super::plan;
-use crate::libs::{
-    config, env, git,
-    github::{api, live},
+use crate::{
+    libs::{
+        config, env, git,
+        github::{api, live},
+    },
+    utils::types,
 };
 
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
@@ -28,6 +31,11 @@ pub enum Error {
     Plan(#[from] plan::Error),
 }
 
+pub struct Comparison {
+    pub changes: Vec<plan::Change>,
+    pub desired: types::Declaration,
+}
+
 pub fn client() -> Result<api::Client, Error> {
     let token = env::token()?;
     let base = env::api_url()?;
@@ -36,7 +44,7 @@ pub fn client() -> Result<api::Client, Error> {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn read_changes(client: &api::Client) -> Result<Vec<plan::Change>, Error> {
+pub async fn read_changes(client: &api::Client) -> Result<Comparison, Error> {
     let repository = git::repository().await?;
     let file = path::Path::new("github-settings.json");
     let desired = config::read(file).await?;
@@ -45,5 +53,5 @@ pub async fn read_changes(client: &api::Client) -> Result<Vec<plan::Change>, Err
     let branch = Some(branch);
     let current = live::read(client, &desired.repository, branch).await?;
     let changes = plan::changes(&desired, &current)?;
-    Ok(changes)
+    Ok(Comparison { changes, desired })
 }

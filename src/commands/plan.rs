@@ -15,8 +15,8 @@ pub enum Error {
 #[tracing::instrument(skip_all)]
 pub async fn run(sender: &mpsc::UnboundedSender<String>) -> Result<(), Error> {
     let client = session::client()?;
-    let changes = session::read_changes(&client).await?;
-    let event = output::Event::Planned(&changes);
+    let comparison = session::read_changes(&client).await?;
+    let event = output::Event::Planned(&comparison.changes);
     output::emit(sender, event)?;
     Ok(())
 }

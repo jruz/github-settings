@@ -1,8 +1,11 @@
 use crate::utils::{mock, workspace};
 
 const REPOSITORY: &str = "repos/jruz/agent-config";
+const NO_TOPICS: &str = r#"{"names":[]}"#;
+const ENABLED: &str = r#"{"enabled":true}"#;
+const DISABLED: &str = r#"{"enabled":false}"#;
 
-fn read_steps() -> Vec<mock::Step> {
+fn read_steps(topics: &str, actions: &str) -> Vec<mock::Step> {
     let settings = workspace::fixture("settings").to_string();
     let labels = workspace::fixture("labels").to_string();
     let protection = serde_json::json!({
@@ -19,12 +22,8 @@ fn read_steps() -> Vec<mock::Step> {
             200,
             &protection.to_string(),
         ),
-        mock::get(&format!("{REPOSITORY}/topics"), 200, r#"{"names":[]}"#),
-        mock::get(
-            &format!("{REPOSITORY}/actions/permissions"),
-            200,
-            r#"{"enabled":true}"#,
-        ),
+        mock::get(&format!("{REPOSITORY}/topics"), 200, topics),
+        mock::get(&format!("{REPOSITORY}/actions/permissions"), 200, actions),
         mock::get(&format!("{REPOSITORY}/vulnerability-alerts"), 204, ""),
         mock::get(
             &format!("{REPOSITORY}/automated-security-fixes"),
@@ -80,7 +79,7 @@ async fn failed_push_prints_only_its_report() {
         403,
         r#"{"message":"Resource not accessible by token"}"#,
     );
-    let steps = read_steps()
+    let steps = read_steps(NO_TOPICS, ENABLED)
         .into_iter()
         .chain([topics_step(), actions])
         .collect();
@@ -101,14 +100,13 @@ async fn failed_push_prints_only_its_report() {
 #[tokio::test]
 async fn successful_push_ends_with_its_summary() {
     let state = tempfile::tempdir().expect("state directory");
-    let mut steps = read_steps();
-    for step in &mut steps {
-        if step.path.ends_with("/actions/permissions") {
-            step.body = r#"{"enabled":false}"#.to_owned();
-        }
-    }
-    let topics = topics_step();
-    steps.push(topics);
+    let topics = workspace::fixture("topics").to_string();
+    let verification = read_steps(&topics, DISABLED);
+    let steps = read_steps(NO_TOPICS, DISABLED)
+        .into_iter()
+        .chain([topics_step()])
+        .chain(verification)
+        .collect();
     let state_path = state.path();
     let output = push(steps, state_path).await;
     let stdout = String::from_utf8(output.stdout).expect("UTF-8 stdout");

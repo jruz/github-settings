@@ -3,7 +3,10 @@ use std::time;
 use tokio::sync::mpsc;
 
 use super::{output, plan};
-use crate::libs::github::api;
+use crate::{
+    libs::github::{api, live},
+    utils::types,
+};
 
 pub const POLLING: Polling = Polling {
     attempts: 30,
@@ -19,7 +22,13 @@ pub enum Error {
     Http(#[from] reqwest::Error),
     #[error(transparent)]
     #[diagnostic(transparent)]
+    Live(#[from] live::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
     Output(#[from] output::Error),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Plan(#[from] plan::Error),
     #[error("GitHub still reports the previous value after {attempts} checks")]
     #[diagnostic(help("wait a minute and run push again"))]
     Unsettled { attempts: usize },
@@ -39,6 +48,7 @@ pub struct Polling {
 #[tracing::instrument(skip_all)]
 pub async fn apply(
     client: &api::Client,
+    desired: &types::Declaration,
     changes: &[plan::Change],
     polling: &Polling,
     sender: &mpsc::UnboundedSender<String>,
@@ -63,14 +73,61 @@ pub async fn apply(
         let event = output::Event::Applied(&change.name);
         output::emit(sender, event)?;
     }
+    let unchanged = verify(client, desired).await?;
     let summary = output::Summary {
         applied: changes.len(),
-        failures: &[],
+        failures: &unchanged,
         skipped: 0,
     };
     let event = output::Event::Pushed(summary);
     output::emit(sender, event)?;
-    Ok(Outcome::Applied)
+    let outcome = if unchanged.is_empty() {
+        Outcome::Applied
+    } else {
+        Outcome::Failed
+    };
+    Ok(outcome)
+}
+
+#[tracing::instrument(skip_all)]
+async fn verify(
+    client: &api::Client,
+    desired: &types::Declaration,
+) -> Result<Vec<output::Failure>, Error> {
+    let branch = desired.settings.default_branch.as_str();
+    let branch = Some(branch);
+    let current = live::read(client, &desired.repository, branch).await?;
+    let remaining = plan::changes(desired, &current)?;
+    let unchanged = remaining
+        .iter()
+        .flat_map(unchanged_keys)
+        .map(unchanged_failure)
+        .collect();
+    Ok(unchanged)
+}
+
+fn unchanged_keys(change: &plan::Change) -> Vec<String> {
+    let (Some(before), Some(after)) = (change.before.as_object(), change.after.as_object()) else {
+        return vec![change.name.clone()];
+    };
+    after
+        .iter()
+        .filter(|(key, value)| before.get(*key) != Some(*value))
+        .map(|(key, _)| format!("{}.{key}", change.name))
+        .collect()
+}
+
+fn unchanged_failure(key: String) -> output::Failure {
+    tracing::error!(
+        key,
+        "GitHub accepted the change but kept the previous value"
+    );
+    let help = "GitHub may ignore this key for this repository; run plan to compare".to_owned();
+    output::Failure {
+        help: Some(help),
+        message: "GitHub accepted the change but kept the previous value".to_owned(),
+        name: key,
+    }
 }
 
 async fn apply_change(
