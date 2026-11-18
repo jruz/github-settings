@@ -1,0 +1,21 @@
+{
+  "version": "0.1.0",
+  "platforms": {
+    "x86_64-linux": {
+      "asset": "github-settings-unknown-linux-musl-x86_64",
+      "hash": "sha256-YblRsN5npZX6hMX3GUBTOepreEIEUh4aHax71FbYrl8="
+    },
+    "aarch64-linux": {
+      "asset": "github-settings-unknown-linux-musl-aarch64",
+      "hash": "sha256-ZxIlEAOpCdNF/ccV0PHE3dnlo1QSWfKJ23h0v6f1yZ0="
+    },
+    "x86_64-darwin": {
+      "asset": "github-settings-apple-darwin-x86_64",
+      "hash": "sha256-y8FoMtQdY8UwUWbltkNEzcn8j/zsg+bGoEIuylDN2i0="
+    },
+    "aarch64-darwin": {
+      "asset": "github-settings-apple-darwin-aarch64",
+      "hash": "sha256-dhEFITtbmwiOa+WB9JLrxm6bb3uJ7RGFZm59PBicqxA="
+    }
+  }
+}
