@@ -39,7 +39,7 @@ async fn main() -> std::process::ExitCode {
         println!("{message}");
     }
     match finish(task).await {
-        Ok(()) => std::process::ExitCode::SUCCESS,
+        Ok(code) => code,
         Err(error) => {
             record(&error);
             let report = report(&error);
@@ -49,9 +49,11 @@ async fn main() -> std::process::ExitCode {
     }
 }
 
-async fn finish(task: tokio::task::JoinHandle<Result<(), app::Error>>) -> Result<(), Error> {
-    task.await??;
-    Ok(())
+async fn finish(
+    task: tokio::task::JoinHandle<Result<std::process::ExitCode, app::Error>>,
+) -> Result<std::process::ExitCode, Error> {
+    let code = task.await??;
+    Ok(code)
 }
 
 fn record(error: &Error) {

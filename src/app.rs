@@ -1,3 +1,5 @@
+use std::process;
+
 use tokio::sync::mpsc;
 
 use crate::{cli, commands};
@@ -6,8 +8,6 @@ use crate::{cli, commands};
 pub enum Error {
     #[error(transparent)]
     Channel(#[from] mpsc::error::SendError<String>),
-    #[error("command failed")]
-    Failed,
     #[error(transparent)]
     #[diagnostic(transparent)]
     Plan(#[from] commands::plan::Error),
@@ -26,20 +26,34 @@ pub enum Error {
 pub async fn run(
     arguments: cli::Arguments,
     sender: &mpsc::UnboundedSender<String>,
-) -> Result<(), Error> {
-    match arguments.command {
-        cli::Command::Pull { force } => commands::pull::run(force, sender).await?,
-        cli::Command::Plan => commands::plan::run(sender).await?,
-        cli::Command::Push => commands::push::run(sender).await?,
-        cli::Command::Schema => commands::schema::run(sender)?,
-        cli::Command::Version => {
-            let output = commands::version::run();
-            let text = output.text.trim_end().to_owned();
-            sender.send(text)?;
-            if !output.success {
-                return Err(Error::Failed);
-            }
+) -> Result<process::ExitCode, Error> {
+    let code = match arguments.command {
+        cli::Command::Pull { force } => {
+            commands::pull::run(force, sender).await?;
+            process::ExitCode::SUCCESS
         }
-    }
-    Ok(())
+        cli::Command::Plan => {
+            commands::plan::run(sender).await?;
+            process::ExitCode::SUCCESS
+        }
+        cli::Command::Push => commands::push::run(sender).await?,
+        cli::Command::Schema => {
+            commands::schema::run(sender)?;
+            process::ExitCode::SUCCESS
+        }
+        cli::Command::Version => version(sender)?,
+    };
+    Ok(code)
+}
+
+fn version(sender: &mpsc::UnboundedSender<String>) -> Result<process::ExitCode, Error> {
+    let output = commands::version::run();
+    let text = output.text.trim_end().to_owned();
+    sender.send(text)?;
+    let code = if output.success {
+        process::ExitCode::SUCCESS
+    } else {
+        process::ExitCode::FAILURE
+    };
+    Ok(code)
 }

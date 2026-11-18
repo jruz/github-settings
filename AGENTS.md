@@ -22,6 +22,8 @@
 - `src/utils/`: small generic helpers.
 - `src/utils/types.rs`: declaration types and validation.
 - `build.rs`: Git revision and build timestamp with typed errors using `thiserror`.
+- `tests/commands/`: one binary test module per command.
+- `tests/utils/mock.rs`: mock GitHub API, reached through `GITHUB_API_URL`.
 
 ## Declaration keys
 

@@ -30,7 +30,8 @@ pub enum Error {
 
 pub fn client() -> Result<api::Client, Error> {
     let token = env::token()?;
-    let client = api::client(&token, "https://api.github.com/")?;
+    let base = env::api_url()?;
+    let client = api::client(&token, &base)?;
     Ok(client)
 }
 

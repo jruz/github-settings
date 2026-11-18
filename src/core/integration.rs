@@ -324,9 +324,10 @@ mod tests {
         let (push_base, push_server) = mock(push_steps).await;
         let push_client = api::client("mock-token", &push_base).expect("client");
         let (sender, mut receiver) = mpsc::unbounded_channel();
-        push::apply(&push_client, &changes, &FAST, &sender)
+        let outcome = push::apply(&push_client, &changes, &FAST, &sender)
             .await
             .expect("push");
+        assert_eq!(outcome, push::Outcome::Applied);
         assert_eq!(
             events(&mut receiver),
             [
@@ -357,10 +358,10 @@ mod tests {
         let (base, server) = mock(steps).await;
         let client = api::client("mock-token", &base).expect("client");
         let (sender, mut receiver) = mpsc::unbounded_channel();
-        let error = push::apply(&client, &changes, &FAST, &sender)
+        let outcome = push::apply(&client, &changes, &FAST, &sender)
             .await
-            .expect_err("visibility never settled");
-        assert_eq!(error.to_string(), "push stopped at settings.private");
+            .expect("push report");
+        assert_eq!(outcome, push::Outcome::Failed);
         let events = events(&mut receiver);
         assert_eq!(
             events.first().map(String::as_str),
@@ -434,10 +435,10 @@ mod tests {
         let (base, server) = mock(steps).await;
         let client = api::client("mock-token", &base).expect("client");
         let (sender, mut receiver) = mpsc::unbounded_channel();
-        let error = push::apply(&client, &changes, &FAST, &sender)
+        let outcome = push::apply(&client, &changes, &FAST, &sender)
             .await
-            .expect_err("second update rejected");
-        assert_eq!(error.to_string(), "push stopped at actions");
+            .expect("push report");
+        assert_eq!(outcome, push::Outcome::Failed);
         let skipped = changes
             .iter()
             .skip(2)
@@ -484,9 +485,10 @@ mod tests {
         let (base, server) = mock(steps).await;
         let client = api::client("mock-token", &base).expect("client");
         let (sender, mut receiver) = mpsc::unbounded_channel();
-        push::apply(&client, &changes, &FAST, &sender)
+        let outcome = push::apply(&client, &changes, &FAST, &sender)
             .await
             .expect("push succeeded");
+        assert_eq!(outcome, push::Outcome::Applied);
         let expected = changes
             .iter()
             .map(|change| format!("✓ {}", change.name))

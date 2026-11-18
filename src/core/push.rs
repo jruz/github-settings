@@ -20,16 +20,15 @@ pub enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     Output(#[from] output::Error),
-    #[error("push stopped at {0}")]
-    Stopped(
-        String,
-        #[source]
-        #[diagnostic_source]
-        Box<dyn miette::Diagnostic + Send + Sync>,
-    ),
     #[error("GitHub still reports the previous value after {attempts} checks")]
     #[diagnostic(help("wait a minute and run push again"))]
     Unsettled { attempts: usize },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Outcome {
+    Applied,
+    Failed,
 }
 
 pub struct Polling {
@@ -43,9 +42,10 @@ pub async fn apply(
     changes: &[plan::Change],
     polling: &Polling,
     sender: &mpsc::UnboundedSender<String>,
-) -> Result<(), Error> {
+) -> Result<Outcome, Error> {
     for (applied, change) in changes.iter().enumerate() {
         if let Err(error) = apply_change(client, change, polling).await {
+            tracing::error!(key = %change.name, %error, details = ?error, "change failed");
             let hint = miette::Diagnostic::help(&error);
             let failure = output::Failure {
                 help: hint.map(|hint| hint.to_string()),
@@ -58,9 +58,7 @@ pub async fn apply(
                 .map(|skipped| skipped.name.as_str())
                 .collect::<Vec<_>>();
             report_failure(sender, applied, &failure, &skipped)?;
-            let source = Box::new(error);
-            let stopped = Error::Stopped(failure.name, source);
-            return Err(stopped);
+            return Ok(Outcome::Failed);
         }
         let event = output::Event::Applied(&change.name);
         output::emit(sender, event)?;
@@ -72,7 +70,7 @@ pub async fn apply(
     };
     let event = output::Event::Pushed(summary);
     output::emit(sender, event)?;
-    Ok(())
+    Ok(Outcome::Applied)
 }
 
 async fn apply_change(
