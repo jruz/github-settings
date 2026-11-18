@@ -58,6 +58,9 @@ outdated:
 run *ARGS='':
     sandbox cargo run -- {{ARGS}}
 
+schema-build:
+    sandbox cargo run -- schema > github-settings.schema.json
+
 test *FILTER='':
     sandbox cargo nextest run \
         --no-tests=pass \

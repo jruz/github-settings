@@ -1,11 +1,22 @@
 # github-settings
 
-Scaffolding for a GitHub repository settings CLI.
+Manage GitHub repository settings through a JSON declaration.
 
-## Development
+- Requires `GITHUB_TOKEN` with permission to read and administer the repository.
+- Calls the GitHub REST API directly.
+- Does not require `gh`.
 
-- `just rust::run` prints `Hello, world!`.
-- `just check` runs project checks.
+```sh
+github-settings pull
+github-settings plan
+github-settings push
+```
+
+- `pull --force` overwrites an existing declaration.
+- `plan` previews changes without writes.
+- `push` applies changes to the current repository.
+- `plan` and `push` reject declarations targeting a different repository.
+
 - `just run` runs the app.
 - `just check` runs linters.
 - `just test` runs tests.

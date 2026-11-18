@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Declaration",
+  "type": "object",
+  "properties": {
+    "actions": {
+      "$ref": "#/$defs/Enabled"
+    },
+    "branch_protection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Protection"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Label"
+      }
+    },
+    "repository": {
+      "$ref": "#/$defs/Repository"
+    },
+    "security": {
+      "$ref": "#/$defs/Security"
+    },
+    "settings": {
+      "$ref": "#/$defs/Settings"
+    },
+    "topics": {
+      "$ref": "#/$defs/Topics"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "actions",
+    "branch_protection",
+    "labels",
+    "repository",
+    "security",
+    "settings",
+    "topics"
+  ],
+  "$defs": {
+    "Enabled": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "enabled"
+      ]
+    },
+    "Label": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{6}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "name"
+      ]
+    },
+    "Protection": {
+      "type": "object",
+      "properties": {
+        "allow_deletions": {
+          "type": "boolean"
+        },
+        "allow_force_pushes": {
+          "type": "boolean"
+        },
+        "enforce_admins": {
+          "type": "boolean"
+        },
+        "required_linear_history": {
+          "type": "boolean"
+        },
+        "required_pull_request_reviews": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewRequirements"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "required_status_checks": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StatusChecks"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "restrictions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Restrictions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "allow_deletions",
+        "allow_force_pushes",
+        "enforce_admins",
+        "required_linear_history",
+        "required_pull_request_reviews",
+        "required_status_checks",
+        "restrictions"
+      ]
+    },
+    "Repository": {
+      "type": "string",
+      "pattern": "^[\\w.-]+/[\\w.-]+$"
+    },
+    "Restrictions": {
+      "type": "object",
+      "properties": {
+        "apps": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "teams",
+        "users"
+      ]
+    },
+    "ReviewRequirements": {
+      "type": "object",
+      "properties": {
+        "bypass_pull_request_allowances": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Restrictions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dismiss_stale_reviews": {
+          "type": "boolean"
+        },
+        "dismissal_restrictions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Restrictions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "require_code_owner_reviews": {
+          "type": "boolean"
+        },
+        "require_last_push_approval": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "required_approving_review_count": {
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 6,
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "dismiss_stale_reviews",
+        "require_code_owner_reviews",
+        "required_approving_review_count"
+      ]
+    },
+    "Security": {
+      "type": "object",
+      "properties": {
+        "automated-security-fixes": {
+          "type": "boolean"
+        },
+        "vulnerability-alerts": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "automated-security-fixes",
+        "vulnerability-alerts"
+      ]
+    },
+    "Settings": {
+      "type": "object",
+      "properties": {
+        "allow_auto_merge": {
+          "type": "boolean"
+        },
+        "allow_merge_commit": {
+          "type": "boolean"
+        },
+        "allow_rebase_merge": {
+          "type": "boolean"
+        },
+        "allow_squash_merge": {
+          "type": "boolean"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "default_branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delete_branch_on_merge": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "has_issues": {
+          "type": "boolean"
+        },
+        "has_projects": {
+          "type": "boolean"
+        },
+        "has_wiki": {
+          "type": "boolean"
+        },
+        "is_template": {
+          "type": "boolean"
+        },
+        "private": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "allow_auto_merge",
+        "allow_merge_commit",
+        "allow_rebase_merge",
+        "allow_squash_merge",
+        "archived",
+        "default_branch",
+        "delete_branch_on_merge",
+        "description",
+        "has_issues",
+        "has_projects",
+        "has_wiki",
+        "is_template",
+        "private"
+      ]
+    },
+    "StatusChecks": {
+      "type": "object",
+      "properties": {
+        "contexts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "strict": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "contexts",
+        "strict"
+      ]
+    },
+    "Topic": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,49}$"
+    },
+    "Topics": {
+      "type": "object",
+      "properties": {
+        "names": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Topic"
+          },
+          "maxItems": 20
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "names"
+      ]
+    }
+  }
+}
