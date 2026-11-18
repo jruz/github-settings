@@ -8,10 +8,9 @@ pub enum Error {
     Http(#[from] reqwest::Error),
     #[error("GITHUB_TOKEN contains invalid HTTP header characters")]
     InvalidToken,
-    #[error("GitHub returned {status} for {method} {path}: {body}")]
+    #[error("GitHub rejected {method} {path}: {detail}")]
     Status {
-        body: String,
-        status: reqwest::StatusCode,
+        detail: String,
         method: reqwest::Method,
         path: String,
     },
@@ -74,9 +73,9 @@ pub async fn successful(
 ) -> Result<reqwest::Response, Error> {
     let status = response.status();
     if !status.is_success() {
+        let body = response.text().await?;
         return Err(Error::Status {
-            body: response.text().await?,
-            status,
+            detail: detail(status, &body),
             method,
             path: path.to_owned(),
         });
@@ -84,10 +83,7 @@ pub async fn successful(
     Ok(response)
 }
 
-pub fn describe(error: &Error) -> String {
-    let Error::Status { body, status, .. } = error else {
-        return error.to_string();
-    };
+pub fn detail(status: reqwest::StatusCode, body: &str) -> String {
     let value = serde_json::from_str::<serde_json::Value>(body);
     let message = value
         .as_ref()
@@ -96,6 +92,13 @@ pub fn describe(error: &Error) -> String {
         Ok(Some(message)) => format!("{message} ({})", status.as_u16()),
         Ok(None) | Err(_) => format!("({status})"),
     }
+}
+
+pub fn describe(error: &Error) -> String {
+    let Error::Status { detail, .. } = error else {
+        return error.to_string();
+    };
+    detail.clone()
 }
 
 pub fn segment(value: &str) -> String {

@@ -73,8 +73,7 @@ async fn read_protection(
             return Ok(None);
         }
         let error = api::Error::Status {
-            body,
-            status,
+            detail: api::detail(status, &body),
             method: reqwest::Method::GET,
             path: path.to_owned(),
         };

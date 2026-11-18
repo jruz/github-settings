@@ -250,11 +250,9 @@ mod tests {
         let error = live::read(&client, &desired.repository, None)
             .await
             .expect_err("forbidden");
-        assert!(error.to_string().contains("403"));
-        assert!(
-            error
-                .to_string()
-                .contains("Must have admin rights to Repository.")
+        assert_eq!(
+            error.to_string(),
+            "GitHub rejected GET repos/jruz/agent-config: Must have admin rights to Repository. (403)"
         );
         server
             .await
