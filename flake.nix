@@ -1,7 +1,6 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-26.05";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -13,7 +12,6 @@
     {
       self,
       nixpkgs,
-      nixpkgs-unstable,
       flake-utils,
       rust-overlay,
       ...
@@ -29,11 +27,11 @@
           rustc = rust;
         };
         cargoToml = fromTOML (builtins.readFile ./Cargo.toml);
+        rustVersion = (fromTOML (builtins.readFile ./rust-toolchain.toml)).toolchain.channel;
         projectName = cargoToml.package.name;
         revision = self.rev or "dirty";
         release = builtins.fromJSON (builtins.readFile ./release.json);
         platform = release.platforms.${system};
-        unstable = import nixpkgs-unstable { inherit system; };
         sandbox = pkgs.writeShellScriptBin "sandbox" ''
           export PATH=${
             pkgs.lib.makeBinPath [
@@ -42,7 +40,7 @@
               pkgs.coreutils
             ]
           }:"$PATH"
-          exec ${pkgs.nushell}/bin/nu --no-config-file ${./scripts/sandbox.nu} "$@"
+          exec ${pkgs.nushell}/bin/nu ${./scripts/sandbox.nu} "$@"
         '';
       in
       {
@@ -89,21 +87,25 @@
 
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
-            deadnix
             fd
             gh
             git
             just
-            nixfmt
-            nu-lint
             nushell
+            oxfmt
             podman
             ripgrep
             sandbox
-            statix
-            unstable.woodpecker-cli
           ];
 
+          shellHook = ''
+            echo ""
+            echo "  Development Shell"
+            echo "  ─────────────────"
+            echo "  nixpkgs      ${pkgs.lib.trivial.release}"
+            echo "  rust         ${rustVersion} (docker)"
+            echo ""
+          '';
         };
       }
     );

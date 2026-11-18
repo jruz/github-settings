@@ -1,6 +1,6 @@
 use tokio::sync::mpsc;
 
-use crate::library::output;
+use crate::core::output;
 
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
 pub enum Error {

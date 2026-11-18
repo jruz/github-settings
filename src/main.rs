@@ -1,8 +1,9 @@
 mod app;
 mod cli;
 mod commands;
-#[path = "lib/mod.rs"]
-mod library;
+mod core;
+mod libs;
+mod utils;
 
 use clap::Parser as _;
 use tokio::sync::mpsc;

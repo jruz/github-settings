@@ -16,27 +16,53 @@
     "is_template": false
   },
   "topics": {
-    "names": ["github", "repository-settings", "configuration-as-code", "rust", "cli"]
+    "names": [
+      "github",
+      "repository-settings",
+      "configuration-as-code",
+      "rust",
+      "cli"
+    ]
   },
   "branch_protection": {
-    "required_status_checks": null,
-    "enforce_admins": true,
+    "required_status_checks": {
+      "strict": true,
+      "contexts": ["ci/woodpecker/pr/check"]
+    },
+    "enforce_admins": false,
     "required_pull_request_reviews": null,
     "restrictions": null,
     "required_linear_history": true,
     "allow_force_pushes": true,
     "allow_deletions": false
   },
-  "actions": { "enabled": false },
+  "actions": {
+    "enabled": false
+  },
   "security": {
     "vulnerability-alerts": true,
     "automated-security-fixes": false
   },
   "labels": [
-    { "name": "bugs", "color": "d73a4a" },
-    { "name": "deps", "color": "0075ca" },
-    { "name": "feat", "color": "2da44e" },
-    { "name": "refa", "color": "a2eeef" },
-    { "name": "tool", "color": "7057ff" }
+    {
+      "name": "bugs",
+      "color": "d73a4a"
+    },
+    {
+      "name": "deps",
+      "color": "0075ca"
+    },
+    {
+      "name": "feat",
+      "color": "2da44e"
+    },
+    {
+      "name": "refa",
+      "color": "a2eeef"
+    },
+    {
+      "name": "tool",
+      "color": "7057ff"
+    }
   ]
 }

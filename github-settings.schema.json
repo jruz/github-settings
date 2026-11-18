@@ -54,9 +54,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "enabled"
-      ]
+      "required": ["enabled"]
     },
     "Label": {
       "type": "object",
@@ -71,10 +69,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "color",
-        "name"
-      ]
+      "required": ["color", "name"]
     },
     "Protection": {
       "type": "object",
@@ -141,10 +136,7 @@
       "type": "object",
       "properties": {
         "apps": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": ["array", "null"],
           "items": {
             "type": "string"
           }
@@ -163,10 +155,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "teams",
-        "users"
-      ]
+      "required": ["teams", "users"]
     },
     "ReviewRequirements": {
       "type": "object",
@@ -198,10 +187,7 @@
           "type": "boolean"
         },
         "require_last_push_approval": {
-          "type": [
-            "boolean",
-            "null"
-          ]
+          "type": ["boolean", "null"]
         },
         "required_approving_review_count": {
           "type": "integer",
@@ -228,10 +214,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "automated-security-fixes",
-        "vulnerability-alerts"
-      ]
+      "required": ["automated-security-fixes", "vulnerability-alerts"]
     },
     "Settings": {
       "type": "object",
@@ -259,10 +242,7 @@
           "type": "boolean"
         },
         "description": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "has_issues": {
           "type": "boolean"
@@ -311,10 +291,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "contexts",
-        "strict"
-      ]
+      "required": ["contexts", "strict"]
     },
     "Topic": {
       "type": "string",
@@ -332,9 +309,7 @@
         }
       },
       "additionalProperties": false,
-      "required": [
-        "names"
-      ]
+      "required": ["names"]
     }
   }
 }

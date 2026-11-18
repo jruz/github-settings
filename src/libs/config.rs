@@ -2,7 +2,7 @@ use std::{io, path};
 
 use tokio::io::AsyncWriteExt as _;
 
-use super::types;
+use crate::utils::types;
 
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
 pub enum Error {

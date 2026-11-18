@@ -5,6 +5,10 @@ use crate::{cli, commands};
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
 pub enum Error {
     #[error(transparent)]
+    Channel(#[from] mpsc::error::SendError<String>),
+    #[error("command failed")]
+    Failed,
+    #[error(transparent)]
     #[diagnostic(transparent)]
     Plan(#[from] commands::plan::Error),
     #[error(transparent)]
@@ -28,6 +32,14 @@ pub async fn run(
         cli::Command::Plan => commands::plan::run(sender).await?,
         cli::Command::Push => commands::push::run(sender).await?,
         cli::Command::Schema => commands::schema::run(sender)?,
+        cli::Command::Version => {
+            let output = commands::version::run();
+            let text = output.text.trim_end().to_owned();
+            sender.send(text)?;
+            if !output.success {
+                return Err(Error::Failed);
+            }
+        }
     }
     Ok(())
 }

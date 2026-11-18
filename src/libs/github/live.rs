@@ -1,7 +1,5 @@
-use crate::library::{
-    github::{api, protection},
-    types,
-};
+use super::{api, protection};
+use crate::utils::types;
 
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
 pub enum Error {

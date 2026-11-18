@@ -1,4 +1,4 @@
-use super::{github::api, types};
+use crate::{libs::github::api, utils::types};
 
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
 pub enum Error {
@@ -63,13 +63,13 @@ pub fn changes(
         &desired.actions,
     )?;
     let alerts = toggle(
-        "security.vulnerability_alerts",
+        "security.vulnerability-alerts",
         &format!("{base}/vulnerability-alerts"),
         live.security.vulnerability_alerts,
         desired.security.vulnerability_alerts,
     )?;
     let fixes = toggle(
-        "security.automated_security_fixes",
+        "security.automated-security-fixes",
         &format!("{base}/automated-security-fixes"),
         live.security.automated_security_fixes,
         desired.security.automated_security_fixes,
@@ -211,7 +211,7 @@ fn prune_labels(
 
 #[cfg(test)]
 mod tests {
-    use crate::library::types;
+    use crate::utils::types;
 
     fn fixture() -> types::Declaration {
         let declaration =

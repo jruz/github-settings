@@ -1,5 +1,6 @@
 [rules]
 # all projects
+add_doc_comment_exported_fn = "off"
 add_help_to_error = "off"
 add_label_to_error = "off"
 add_url_to_error = "off"

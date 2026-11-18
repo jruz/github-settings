@@ -1,23 +1,21 @@
 mod rust '.just/rust.justfile'
-mod nix '.just/nix.justfile'
-mod nushell '.just/nushell.justfile'
-import '.just/release.justfile'
+mod just '.just/just.justfile'
+mod oxfmt '.just/oxfmt.justfile'
+mod git '.just/git.justfile'
+mod tools '.just/tools.justfile'
 
 check:
-    just just-fmt-check
-    just nix::check
-    just nushell::check
+    just just::fmt-check
+    just oxfmt::fmt-check
     just rust::check
-    just woodpecker-check
 
 fix:
-    just just-fmt-fix
-    just nix::fix
-    just nushell::fix
+    just just::fmt-fix
+    just oxfmt::fmt-fix
     just rust::fix
 
 setup:
-    just git-hooks
+    just git::hooks-setup
 
 install:
     just rust::install
@@ -28,19 +26,9 @@ test:
 run *ARGS='':
     just rust::run {{ ARGS }}
 
-woodpecker-check:
-    woodpecker-cli lint .woodpecker/*.yml
+[positional-arguments]
+release +ARGS:
+    nu scripts/release.nu "$@"
 
-just-fmt-check:
-    just \
-        --unstable \
-        --fmt \
-        --check
-
-just-fmt-fix:
-    just \
-        --unstable \
-        --fmt
-
-git-hooks:
-    git config --local core.hooksPath .githooks
+schema-build:
+    sandbox cargo run -- schema > github-settings.schema.json

@@ -3,7 +3,8 @@ use std::{collections::BTreeSet, io::IsTerminal as _};
 use serde_json::Value;
 use tokio::sync::mpsc;
 
-use super::{plan, types};
+use super::plan;
+use crate::utils::types;
 
 const COLORED: Palette = Palette {
     bold: "\x1b[1m",

@@ -8,11 +8,9 @@ mod tests {
     };
 
     use crate::{
-        commands::push,
-        library::{
-            github::{api, live},
-            plan, types,
-        },
+        core::{plan, push},
+        libs::github::{api, live},
+        utils::types,
     };
 
     const FAST: push::Polling = push::Polling {
@@ -142,7 +140,7 @@ mod tests {
 
     fn fixture() -> types::Declaration {
         let declaration =
-            serde_json::from_str(include_str!("../../../tests/fixtures/declaration.json"))
+            serde_json::from_str(include_str!("../../tests/fixtures/declaration.json"))
                 .expect("fixture");
         types::normalize(declaration).expect("valid fixture")
     }

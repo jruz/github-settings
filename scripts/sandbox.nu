@@ -1,4 +1,14 @@
-use std/log
+module log {
+    export def error [msg: string]: nothing -> nothing {
+        print --stderr $"[(ansi red)ERROR(ansi reset)] ($msg)"
+    }
+
+    export def ok [msg: string]: nothing -> nothing {
+        print --stderr $"[(ansi green)OK(ansi reset)] ($msg)"
+    }
+}
+
+use log
 
 const CONFIG_TYPES = {
     readonlyHomeDirectories: list<string>
@@ -26,6 +36,7 @@ def help-text []: nothing -> string {
         ""
         "Usage:"
         "  sandbox <command> [...args]  run a command in its runtime container"
+        "  sandbox <docker options> -- <command> [...args]  pass explicit Docker run options"
         "  sandbox build [--force]      build missing images for existing Dockerfiles, --force rebuilds all"
         "  sandbox --help               show this help"
         ""
@@ -83,7 +94,6 @@ def build-image []: record -> nothing {
     let args = ($spec.build_args
         | items {|name, value| [--build-arg $"($name)=($value)"] }
         | flatten)
-    log info $"sandbox: building ($spec.image)"
     $spec.dockerfile | ^docker build --tag $spec.image ...$args -
 }
 
@@ -97,9 +107,9 @@ def image-spec [root: path]: record -> record {
     }
 }
 
-def ensure-image [--force]: record -> nothing {
+def ensure-image []: record -> nothing {
     let spec = $in
-    if $force or not (image-exists $spec.image) {
+    if not (image-exists $spec.image) {
         $spec | build-image
     }
 }
@@ -214,7 +224,7 @@ def config-errors []: record -> list<string> {
         | items {|key, value|
             let actual = ($value | describe)
             let expected = ($CONFIG_TYPES | get --optional $key)
-            let empty_list = ($actual == "list<any>" and ($value | is-empty))
+            let empty_list = ($expected == "list<string>" and $actual == "list<any>" and ($value | is-empty))
             if $actual != $expected and not $empty_list {
                 [$"sandbox.json: ($key) must be ($expected), got ($actual)"]
             } else {
@@ -251,12 +261,12 @@ def tty-flags []: nothing -> list<string> {
     if (is-terminal --stdin) and (is-terminal --stdout) { [--tty] } else { [] }
 }
 
-def run-sandbox [command: string, args: list<string>]: record -> nothing {
+def run-sandbox [request: record]: record -> nothing {
     let project = $in
     let root = $project.root
     let config = $project.config
     let relative = ($env.PWD | path relative-to $root)
-    let runtime = (runtime-of $command)
+    let runtime = (runtime-of $request.command)
     let image = (runtime-image $root $runtime)
     let caches = (cache-dirs $runtime | create-dirs)
     let uid = (^id --user | str trim)
@@ -279,35 +289,60 @@ def run-sandbox [command: string, args: list<string>]: record -> nothing {
         ...($caches | bind-mounts)
         ...(runtime-env $runtime)
         ...($config | configured-mounts $root)
+        ...$request.docker_options
         $image
-        $command
-        ...$args)
+        $request.command
+        ...$request.args)
 }
 
 # Build missing runtime images
 def "main build" [
     --force # rebuild images even when they already exist
-]: nothing -> string {
+]: nothing -> nothing {
     let root = (repo-root)
     let runtimes = ($BUILT_RUNTIMES | where (dockerfile-path $root $it | path exists))
     if ($runtimes | is-empty) {
         log error $"sandbox: no Dockerfile found for: ($BUILT_RUNTIMES | str join ', ')"
         exit 1
     }
-    mut images = []
     for runtime in $runtimes {
         let spec = (image-config $root $runtime | image-spec $root)
-        $spec | ensure-image --force=$force
-        $images ++= [$spec.image]
+        let status = if $force or not (image-exists $spec.image) {
+            $spec | build-image
+            "built"
+        } else {
+            "is up to date"
+        }
+        print $spec.image
+        log ok $"sandbox: image ($runtime) ($status)"
     }
-    $images | str join "\n"
+}
+
+def invocation [arguments: list<string>]: nothing -> record {
+    let command = ($arguments | first)
+    let boundaries = ($arguments | enumerate | where item == '--')
+    if (is-known $command) or ($boundaries | is-empty) {
+        return {
+            command: $command
+            args: ($arguments | skip 1)
+            docker_options: []
+        }
+    }
+    let boundary = ($boundaries | first | get index)
+    let runtime = ($arguments | skip ($boundary + 1))
+    {
+        command: ($runtime | first)
+        args: ($runtime | skip 1)
+        docker_options: ($arguments | take $boundary)
+    }
 }
 
 # Run a command inside its runtime container
 def --wrapped main [
-    command: string # command to run, such as cargo or pnpm
-    ...args: string # arguments forwarded to the command
+    ...arguments: string # Docker options before --, followed by the runtime command and its arguments
 ]: nothing -> nothing {
+    let request = (invocation $arguments)
+    let command = $request.command
     match $command {
         "--help" | "-h" => { print (help-text) }
         _ if (is-known $command) => {
@@ -320,7 +355,7 @@ def --wrapped main [
                 }
                 exit 1
             }
-            {root: $root, config: $config} | run-sandbox $command $args
+            {root: $root, config: $config} | run-sandbox $request
         }
         _ => {
             log error (unknown-command-text $command)

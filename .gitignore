@@ -6,5 +6,7 @@
 /PLAN.md
 result
 .intentionally-empty-file.o
+
+# project entries below, everything above is managed by template-sync
 /github-settings-unknown-linux-musl-*
 /github-settings-apple-darwin-*

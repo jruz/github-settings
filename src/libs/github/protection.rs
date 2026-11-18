@@ -1,4 +1,4 @@
-use crate::library::types;
+use crate::utils::types;
 
 #[derive(Debug, thiserror::Error, miette::Diagnostic)]
 pub enum Error {

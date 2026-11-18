@@ -1,15 +1,8 @@
-const VERSION_STRING: &str = concat!(
-    "\nversion: ",
-    env!("CARGO_PKG_VERSION"),
-    "\nrevision: ",
-    env!("REVISION"),
-    "\nbuild-time: ",
-    env!("BUILD_TIME"),
-);
+use crate::commands::version;
 
 #[derive(Debug, clap::Parser)]
 #[command(
-    version = VERSION_STRING,
+    version = version::text(),
     about = "Pull, plan, and push declarative GitHub repository settings"
 )]
 pub struct Arguments {
@@ -30,6 +23,8 @@ pub enum Command {
     Push,
     #[command(about = "Print the declaration JSON Schema")]
     Schema,
+    #[command(about = "Show version and build metadata")]
+    Version,
 }
 
 #[cfg(test)]
