@@ -40,8 +40,8 @@
     "enabled": false
   },
   "security": {
-    "vulnerability-alerts": true,
-    "automated-security-fixes": false
+    "vulnerability_alerts": true,
+    "automated_security_fixes": false
   },
   "labels": [
     {

@@ -206,15 +206,15 @@
     "Security": {
       "type": "object",
       "properties": {
-        "automated-security-fixes": {
+        "automated_security_fixes": {
           "type": "boolean"
         },
-        "vulnerability-alerts": {
+        "vulnerability_alerts": {
           "type": "boolean"
         }
       },
       "additionalProperties": false,
-      "required": ["automated-security-fixes", "vulnerability-alerts"]
+      "required": ["automated_security_fixes", "vulnerability_alerts"]
     },
     "Settings": {
       "type": "object",

@@ -151,9 +151,7 @@ pub struct Enabled {
 )]
 #[schemars(deny_unknown_fields)]
 pub struct Security {
-    #[serde(rename = "automated-security-fixes")]
     pub automated_security_fixes: bool,
-    #[serde(rename = "vulnerability-alerts")]
     pub vulnerability_alerts: bool,
 }
 

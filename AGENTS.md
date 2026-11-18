@@ -23,6 +23,13 @@
 - `src/utils/types.rs`: declaration types and validation.
 - `build.rs`: Git revision and build timestamp with typed errors using `thiserror`.
 
+## Declaration keys
+
+- Name keys in `github-settings.json` after the GitHub REST API field they manage.
+- Where the API has no JSON field, name the key after the endpoint path segment.
+- Use `_` in keys, never `-`.
+- Keep values in GitHub's format, including `-` in topics, labels and branch names.
+
 ## Layers
 
 - `main.rs` calls `commands` and `utils`.

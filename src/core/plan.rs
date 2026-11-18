@@ -63,13 +63,13 @@ pub fn changes(
         &desired.actions,
     )?;
     let alerts = toggle(
-        "security.vulnerability-alerts",
+        "security.vulnerability_alerts",
         &format!("{base}/vulnerability-alerts"),
         live.security.vulnerability_alerts,
         desired.security.vulnerability_alerts,
     )?;
     let fixes = toggle(
-        "security.automated-security-fixes",
+        "security.automated_security_fixes",
         &format!("{base}/automated-security-fixes"),
         live.security.automated_security_fixes,
         desired.security.automated_security_fixes,

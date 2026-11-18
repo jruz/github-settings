@@ -8,6 +8,8 @@ use crate::utils::types;
 pub enum Error {
     #[error("declaration already exists: {0}; use --force to overwrite")]
     Exists(path::PathBuf),
+    #[error("{file} has keys with \"-\"; rename them to match the schema\n{renames}")]
+    Hyphenated { file: String, renames: String },
     #[error(transparent)]
     Io(#[from] io::Error),
     #[error(transparent)]
@@ -27,9 +29,55 @@ pub async fn read(file: &path::Path) -> Result<types::Declaration, Error> {
         let path = file.to_owned();
         Error::Read(path, source)
     })?;
+    let value: serde_json::Value = serde_json::from_slice(&content)?;
+    let renames = hyphenated(&value, "");
+    if !renames.is_empty() {
+        return Err(Error::Hyphenated {
+            file: file.display().to_string(),
+            renames: renames.join("\n"),
+        });
+    }
     let declaration = strict(&content)?;
     let declaration = types::normalize(declaration)?;
     Ok(declaration)
+}
+
+fn hyphenated(value: &serde_json::Value, parent: &str) -> Vec<String> {
+    match value {
+        serde_json::Value::Object(fields) => fields
+            .iter()
+            .flat_map(|(key, child)| {
+                let current = join(parent, key);
+                let corrected = key.replace('-', "_");
+                let target = join(parent, &corrected);
+                let rename = key
+                    .contains('-')
+                    .then(|| format!("  - {current} → {target}"));
+                let nested = hyphenated(child, &current);
+                rename.into_iter().chain(nested)
+            })
+            .collect(),
+        serde_json::Value::Array(items) => items
+            .iter()
+            .enumerate()
+            .flat_map(|(index, item)| {
+                let position = index.to_string();
+                let current = join(parent, &position);
+                hyphenated(item, &current)
+            })
+            .collect(),
+        serde_json::Value::Null
+        | serde_json::Value::Bool(_)
+        | serde_json::Value::Number(_)
+        | serde_json::Value::String(_) => Vec::new(),
+    }
+}
+
+fn join(parent: &str, key: &str) -> String {
+    if parent.is_empty() {
+        return key.to_owned();
+    }
+    format!("{parent}.{key}")
 }
 
 fn strict(content: &[u8]) -> Result<types::Declaration, Error> {
@@ -117,6 +165,24 @@ mod tests {
         super::read(&file)
             .await
             .expect_err("missing required fields");
+    }
+
+    #[tokio::test]
+    async fn hyphenated_keys_suggest_underscores_and_ignore_values() {
+        let directory = tempfile::tempdir().expect("temporary directory");
+        let file = directory.path().join("settings.json");
+        let content = include_str!("../../tests/fixtures/declaration.json")
+            .replace("vulnerability_alerts", "vulnerability-alerts")
+            .replace("automated_security_fixes", "automated-security-fixes");
+        tokio::fs::write(&file, content)
+            .await
+            .expect("write declaration");
+        let error = super::read(&file).await.expect_err("hyphenated keys");
+        let expected = format!(
+            "{} has keys with \"-\"; rename them to match the schema\n  - security.automated-security-fixes → security.automated_security_fixes\n  - security.vulnerability-alerts → security.vulnerability_alerts",
+            file.display()
+        );
+        assert_eq!(error.to_string(), expected);
     }
 
     #[tokio::test]
