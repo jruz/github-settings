@@ -7,7 +7,6 @@
     "allow_merge_commit": false,
     "allow_rebase_merge": false,
     "allow_squash_merge": true,
-    "should_fail_1": true,
     "archived": false,
     "default_branch": "main",
     "delete_branch_on_merge": true,
@@ -16,7 +15,6 @@
     "has_wiki": false,
     "is_template": false
   },
-  "should_fail_2": true,
   "topics": {
     "names": ["github", "repository-settings", "configuration-as-code", "rust", "cli"]
   },
