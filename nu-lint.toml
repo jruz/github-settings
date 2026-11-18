@@ -1,6 +1,5 @@
 [rules]
 # all projects
-add_doc_comment_exported_fn = "off"
 add_help_to_error = "off"
 add_label_to_error = "off"
 add_url_to_error = "off"
@@ -13,7 +12,6 @@ fd_to_glob = "off"
 hostname_to_sys_host = "off"
 if_null_to_default = "off"
 list_param_to_variadic = "off"
-main_positional_args_docs = "off"
 remove_hat_not_builtin = "off"
 single_call_command = "off"
 split_row_space_to_split_words = "off"
